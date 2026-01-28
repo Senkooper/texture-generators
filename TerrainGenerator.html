@@ -1,0 +1,467 @@
+<html>
+    <canvas>
+
+    </canvas>
+</html>
+<script>
+    const canvas = document.querySelector('canvas')
+    const draw = canvas.getContext('2d')
+
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+    
+   // draw.fillStyle = 'rgb(1,1,1)'
+    render()
+
+
+
+    function bellCurve(xTranslate,slope,x){
+        return Math.pow(Math.E,-Math.pow((x-xTranslate),2)/slope)
+    }
+    function gaussBlurr(a,x,y){
+        return Math.pow(Math.E/(2*Math.PI*Math.pow(a,2)),(Math.pow(x,2)+Math.pow(y,2))/(2*Math.pow(a,2)))
+    }
+
+
+    function lerp(v1,v2,t){
+        return (1-t) * v1 + t*v2
+    }
+
+
+    function bicubicInterp(p0,p1,p2,p3,t){
+        return 0.5 * (2*p1 + (-p0+p2)*t + (2*p0-5*p1+4*p2-p3)*t*t+(-p0+3*p1-3*p2+p3)*t*t*t)
+    }
+
+
+
+    function cubicInterp(p0,p1,t){
+        return (2*t*t*t-3*t*t+1)*p0 + (-2*t*t*t + 3*t*t)*p1 
+    }
+
+
+    function genMountainStruct(maxSize,ridges,numSeedRidges,numSeedEdgeRidges,slope){
+
+        var heightMap = new Array(maxSize).fill(0).map(()=>{return new Array(maxSize).fill(0)})
+
+        var randX = 0
+        var randY = 0
+        var x = 0
+        var y = 0
+        var nearestX = 0
+        var nearestY = 0 
+        var minDist = 1000000
+
+        var ridgeOffsets = [[-1,0],[1,0],[0,-1],[0,1]]
+
+
+        for  (var c = numSeedEdgeRidges; c < numSeedRidges+numSeedEdgeRidges; c++){
+            randX = rand(maxSize-1)
+            randY = rand(maxSize-1)
+            ridges[c] = [randX,randY]
+            heightMap[randX][randY] = 1
+            
+        }
+        
+
+        for (var c=numSeedRidges+numSeedEdgeRidges; c<ridges.length; c++){
+            randX = rand(maxSize-1)
+            randY = rand(maxSize-1)
+            minDist = 1000000
+            //nearestX = 0
+            //nearestY = 0
+            for (var ridgeI = 0; ridgeI < c; ridgeI++){
+
+                for (var ridgeOffsetI = 0; ridgeOffsetI < ridgeOffsets.length; ridgeOffsetI++){
+                    x = ridges[ridgeI][0]+ridgeOffsets[ridgeOffsetI][0]
+                    y = ridges[ridgeI][1]+ridgeOffsets[ridgeOffsetI][1]
+
+                    if (x < maxSize && x > -1 && y < maxSize && y > -1 && !heightMap[x][y]){
+                        dist = Math.pow(x-randX,2)+Math.pow(y-randY,2)
+                        if (dist < minDist){
+                            minDist = dist
+                            nearestX = x
+                            nearestY = y
+                        }
+                    } 
+
+                }
+                
+                
+            }
+
+            
+            //if (minDist == 1000000){
+              //  console.log('DUPLICATE')
+            //}
+            ridges[c] = [nearestX,nearestY]
+            heightMap[nearestX][nearestY] = 1/(c/slope+1)
+
+        }
+    }
+
+
+    function mountainStructGen(points,resolution){
+
+    }
+    //console.log(normDistro(100,0,100))
+
+    function heightMapGen(resolution,scale,numRidges,numSeedRidges,slope,blurrIntensity){
+        var heightMap = new Array(resolution*scale-(scale-1)).fill(0).map(()=>{return new Array(resolution*scale-(scale-1)).fill(0)})
+        var ridges = new Array(numRidges)
+        var randX = 0
+        var randY = 0
+        var x = 0
+        var y = 0
+        var nearestX
+        var nearestY
+        var minDist = 1000000
+        var dist = 0
+        var height = 0
+        var pointOffsets = [[-1,0],[1,0],[0,-1],[0,1]]
+        //var numRidges = 4
+        for  (var c = 0; c < numSeedRidges; c++){
+            randX = rand(resolution-1)*scale
+            randY = rand(resolution-1)*scale
+            ridges[c] = [randX,randY]
+            height = 1
+            heightMap[randX][randY] = height
+            
+        }
+        //console.log(ridges)
+
+        for (var c=numSeedRidges; c<numRidges; c++){
+            randX = rand(resolution-1)*scale
+            randY = rand(resolution-1)*scale
+            minDist = 1000000
+            //nearestX = 0
+            //nearestY = 0
+            for (var i = 0; i < c; i++){
+                
+                for (var pointOffsetIndex = 0; pointOffsetIndex < pointOffsets.length; pointOffsetIndex++){
+                    x = ridges[i][0]+pointOffsets[pointOffsetIndex][0]*scale
+                    y = ridges[i][1]+pointOffsets[pointOffsetIndex][1]*scale
+
+                    if (x < resolution*scale && x > -1 && y < resolution*scale && y > -1 && !heightMap[x][y]){
+                        dist = Math.pow(x-randX,2)+Math.pow(y-randY,2)
+                        if (dist < minDist){
+                            minDist = dist
+                            nearestX = x
+                            nearestY = y
+                        }
+                    } 
+                }
+                
+            }
+
+            
+            //if (minDist == 1000000){
+              //  console.log('DUPLICATE')
+            //}
+            
+            ridges[c] = [nearestX,nearestY]
+            height = 1/(c/slope+1)
+
+            heightMap[nearestX][nearestY] = height
+
+        }
+
+
+
+       
+        for (var x = 0; x <heightMap.length-scale; x+= scale){
+            for (var y = 0; y < heightMap.length-scale; y+=scale){
+
+
+                //var lerpBottomX = (heightMap[x+scale][y+scale]-heightMap[x][y+scale])/scale
+                for (var subX = 0; subX < scale; subX++){
+                   //heightMap[x+subX][y] = heightMap[x][y]+lerpTopX*subX
+                   //heightMap[x+subX][y+scale] = heightMap[x][y+scale]+lerpBottomX*subX
+
+                   //var lerpY = (heightMap[x][y+scale]+lerpBottomX*subX-heightMap[x][y]+lerpTopX*subX)/scale
+
+                   for (var subY = 0; subY < scale; subY++){
+                        heightMap[x+subX][y+subY] = cubicInterp(cubicInterp(heightMap[x][y],heightMap[x+scale][y],subX/scale),cubicInterp(heightMap[x][y+scale],heightMap[x+scale][y+scale],subX/scale),subY/scale)
+                   }
+                    //for (var subY = 0; subY < 10; subY++){
+
+                    //}
+                }
+            }
+        }
+//        for (x = 0; x < heightMap.length; x+=10){
+            //nearestX = heightMap[x]
+  //          for (y = 0; y < heightMap.length; y+10){
+
+  //          }
+    //    }
+
+        /*var blurredHeightMap = new Array((resolution-blurrIntensity)*scale-scale).fill().map(()=>{return new Array((resolution-blurrIntensity)*scale-scale).fill()})
+
+
+       // var blurrPattern = new Array(blurrIntensity*scale+1).fill().map(()=>{return new Array(blurrIntensity*scale+1).fill()})
+
+
+        for (var x = 0; x < blurredHeightMap.length; x++){
+            for (var y = 0; y < blurredHeightMap.length; y++){
+                var height = 0
+                for (var chunkX = 0; chunkX < blurrIntensity*scale+1;chunkX++){
+                    for (var chunkY = 0; chunkY < blurrIntensity*scale+1;chunkY++){
+                        //console.log(chunkX)
+                        //console.log(chunkY)
+                        //return
+                        height += heightMap[chunkX+x][chunkY+y]//*normDistroMatrix[chunkX][chunkY]//*normDistro(blurrIntensity*scale+1,chunkX,chunkY)
+                        //console.log(heightMap[chunkX][chunkY])
+                    }
+                }
+                //height/18
+                blurredHeightMap[x][y] = height/Math.pow(blurrIntensity*scale+1,2)
+            }
+        }
+        //for (x = 0; x < 500-18; x++){
+          //  for (y = 0; y < 500-18; y++){
+            //    for (var chunkX = x; chunkX < x+18; chunkX++){
+                    
+              //  }
+            //}
+        //}*/
+
+        return heightMap
+    }
+
+
+    console.log(Math.floor(-1))
+
+
+
+    draw.imageSmoothingEnabled  = false
+
+
+
+    class vect2d{
+        x
+        y
+        constructor(x,y){
+            this.x = x
+            this.y = y
+        }
+    }
+    //  
+
+    function norm2d(vect){
+        var len = Math.sqrt(vect.x*vect.x+vect.y*vect.y)
+        vect.x = vect.x/len
+        vect.y = vect.y/len
+        return vect
+    }
+    function dot2d(vectA,vectB){
+        return vectA.x*vectB.x + vectA.y*vectB.y
+    }
+
+    function perlin(topLeftDir,topRightDir,bottomLeftDir,bottomRightDir,x,y){
+        return cubicInterp(cubicInterp(dot2d(topLeftDir,new vect2d(x,y)),dot2d(topRightDir,new vect2d(x-1,y)),x),
+        cubicInterp(dot2d(bottomLeftDir,new vect2d(x,y-1)),dot2d(bottomRightDir,new vect2d(x-1,y-1)),x),y)+0.5
+    }
+
+
+    function testGen(){
+
+    }
+   // Math.floor(rand(1,0))
+
+   
+
+   
+
+    setInterval(()=>{
+
+   
+        var height = 0
+        //draw.fillStyle = 'green
+        render()
+        var dirVectors = [norm2d(new vect2d(rand(1,-1),rand(1,-1))),norm2d(new vect2d(rand(1,-1),rand(1,-1))),norm2d(new vect2d(rand(1,-1),rand(1,-1))),norm2d(new vect2d(rand(1,-1),rand(1,-1)))]
+        //dirVectors[1].x--
+        var sidAvector = [dirVectors[1],norm2d(new vect2d(rand(1,-1),rand(1,-1))),dirVectors[3],norm2d(new vect2d(1,1))]
+
+        //console.log(sidAvector)
+        //dirVectors[2].y--
+
+        
+        //dirVectors[3].x--
+        //dirVectors[3].y--
+    //console.log(heightMap[0][0])
+    //console.log('hell')
+    for (var x = 0; x < 500; x++){
+        for (var y = 0; y < 500; y++){
+           // if (heightMap[x][y]){
+
+                height = perlin(dirVectors[0],dirVectors[1],dirVectors[2],dirVectors[3],x/500,y/500)
+                //console.log(height*-1,height)
+                //if (height > 0.9){
+                //    console.log('hello')
+              //  }
+                 draw.fillStyle = 'rgb('+
+      Math.floor(height*256)+','+
+      Math.floor(height*256)+','+
+      Math.floor(height*256)+')';
+                
+           // }else{
+             //   draw.fillStyle = 'green'
+            //}
+            draw.fillRect(x,y,1,1)
+
+
+            //if (heightMap[x][y]){
+               // draw.fillStyle = 'green'
+
+             //   draw.fillRect(x*10+2,y*10+2,8,8)
+            //}
+            
+            
+        }
+    }
+    for (var x = 0; x < 500; x++){
+        for (var y = 0; y < 500; y++){
+           // if (heightMap[x][y]){
+
+                height = perlin(sidAvector[0],sidAvector[1],sidAvector[2],sidAvector[3],x/500,y/500)
+                   // if (height > 0.9){
+                   // console.log('hello')
+               // }
+                //console.log(height*-1,height)
+                 draw.fillStyle = 'rgb('+
+      Math.floor(height*256)+','+
+      Math.floor(height*256)+','+
+      Math.floor(height*256)+')';
+                
+           // }else{
+             //   draw.fillStyle = 'green'
+            //}
+            draw.fillRect(x+500,y,1,1)
+
+
+            //if (heightMap[x][y]){
+               // draw.fillStyle = 'green'
+
+             //   draw.fillRect(x*10+2,y*10+2,8,8)
+            //}
+            
+            
+        }
+    }
+    },1000)
+
+
+    
+    /*cells = []
+
+    for (var i= 0; i < 10; i++){
+        cells.push(new Cell(rand(canvas.width),rand(canvas.height)))//rand(canvas.width/2-canvas.height/2,canvas.width/2+canvas.height/2),rand(canvas.height)))
+    }
+    //for (var i = 0; i < cells.length; i++){
+
+
+    heightMap = new Array(500).fill().map(()=>{new Array(500).fill()})
+
+
+    
+
+    chunkSize = 2
+    halfChunkSize = Math.floor(chunkSize/2)
+    //setInterval(() => {
+
+    for (var c= 0; c < 10000; c++){
+        x = rand(canvas.width)//rand(canvas.width/2-canvas.height/2,canvas.width/2+canvas.height/2)
+        y = rand(canvas.height)
+        minDist = 10000000
+        var cell
+        for (var i= 0; i < cells.length; i++){
+            dist = Math.pow(cells[i].x-x,2)+Math.pow(cells[i].y-y,2)
+            if (dist < minDist){
+                minDist = dist
+                cell = cells[i]
+            }
+        }
+
+        newCells = [new Cell(cell.x-chunkSize,cell.y),new Cell(cell.x+chunkSize,cell.y),new Cell(cell.x,cell.y+chunkSize),new Cell(cell.x,cell.y-chunkSize)]
+
+
+        minDist = 100000000
+
+        for (var i = 0; i < newCells.length; i++){
+            dist = Math.pow(newCells[i].x-x,2)+Math.pow(newCells[i].y-y,2)
+            if (dist < minDist){
+                minDist = dist
+                cell = newCells[i]
+            }
+        }
+
+       
+
+        
+
+
+        
+
+        cells.push(cell)
+    }
+        */
+    //console.log(draw.getImageData(0,0,500,500))
+
+    //for (var x = 0; x < canvas.width; x++){
+      //  for (var y = 0; y < canvas.height; y++){
+
+     //   }
+  //  }
+    
+
+
+    //for (var i = 0; i < cells.length; i++){
+      //  draw.createRadialGradient(cells[i].x-25,cells[i].y-25,50,125,125,125)
+  //  }
+    //function (){
+    //}
+   // console.log(draw.getImageData(0,0,1,canvas.height))
+    //});
+   
+
+
+
+
+    //}
+  //  console.log(cells)
+    
+    
+
+  //  y = 1
+    //console.log((y-1)*theMap.width)
+   // console.log(caveMap)
+ //   draw.fillStyle = "#0000FF"
+   // draw.fillRect(0,0,canvas.width,canvas.height)
+ //   console.log(theMap.width/20)
+    //drawChunk()
+
+  
+
+    
+
+
+
+   
+    
+
+    function render(){
+        draw.fillStyle = 'green'
+        draw.fillRect(0,0,canvas.width,canvas.height)
+        //draw.fillStyle = "#ff7f50"
+        //draw.fillRect(0,0,200,200)
+
+    }
+
+
+
+   
+    function rand(max,min = 0){
+        return Math.random()*(max - min)+min
+    }
+    
+</script>

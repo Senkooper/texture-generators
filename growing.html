@@ -1,0 +1,122 @@
+<html>
+    <canvas>
+
+    </canvas>
+</html>
+<script>
+    const canvas = document.querySelector('canvas')
+    const draw = canvas.getContext('2d')
+
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+    
+    draw.strokeStyle = "#808080"
+    render()
+
+
+
+
+
+    class Cell{
+        x
+        y
+        unexposedLevel
+        constructor(x,y,unexposedLevel = 0){
+            this.x = x
+            this.y = y
+            this.unexposedLevel = unexposedLevel
+        }
+    }
+
+
+
+    cells = [new Cell(500,500)]
+
+
+    
+    newCells = [new Cell(-8+500,500),new Cell(8+500,500),new Cell(500,-8+500),new Cell(500,8+500)]
+    
+
+    //for (var i = 0; i < cells.length; i++){
+
+
+
+
+
+    draw.fillStyle = 'green'
+    setInterval(() => {
+        newCellI = rand(newCells.length-1)
+        cell = newCells[newCellI]
+        newCells.splice(newCellI,1)
+
+
+        addNewCells = [new Cell(cell.x+8,cell.y),new Cell(cell.x-8,cell.y),new Cell(cell.x,cell.y+8),new Cell(cell.x,cell.y-8)]
+        for (var i = 0; i < newCells.length; i++){
+            for (var i2 = 0; i2 < addNewCells.length; i2++){
+                if (addNewCells[i2]){
+                    if (addNewCells[i2].x == newCells[i].x && addNewCells[i2].y == newCells[i].y){
+                        addNewCells[i2] = undefined
+                    }
+                }
+            }
+        }
+        for (var i = 0; i < cells.length; i++){
+            for (var i2 = 0; i2 < addNewCells.length; i2++){
+                if (addNewCells[i2]){
+                    if (addNewCells[i2].x == cells[i].x && addNewCells[i2].y == cells[i].y){
+                        addNewCells[i2] = undefined
+                    }
+                }
+            }
+        }
+        draw.fillRect(cell.x-4,cell.y-4,8,8)
+        cells.push(cell)
+      
+        for (var i = 0; i < addNewCells.length; i++){
+            if (addNewCells[i]){
+                newCells.push(addNewCells[i])
+            }
+        }
+    }, 10);
+   
+
+
+
+
+    //}
+    console.log(cells)
+    
+    
+
+  //  y = 1
+    //console.log((y-1)*theMap.width)
+   // console.log(caveMap)
+ //   draw.fillStyle = "#0000FF"
+   // draw.fillRect(0,0,canvas.width,canvas.height)
+ //   console.log(theMap.width/20)
+    //drawChunk()
+
+  
+
+    
+
+
+
+   
+    
+
+    function render(){
+        draw.fillRect(0,0,canvas.width,canvas.height)
+        //draw.fillStyle = "#ff7f50"
+        //draw.fillRect(0,0,200,200)
+
+    }
+
+
+
+   
+    function rand(max,min = 0){
+        return Math.floor(Math.random()*(max - min+1))+min
+    }
+    
+</script>
